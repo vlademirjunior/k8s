@@ -1,0 +1,226 @@
+kubectl.exe get pods --all-namespaces
+- mostra se todos os pods/containers necessário para rodar o kubernetes estão instalados:
+NAMESPACE     NAME                                     READY   STATUS                  RESTARTS   AGE
+kube-system   coredns-558bd4d5db-ktmfb                 1/1     Running                 2          13d
+kube-system   coredns-558bd4d5db-wfhnz                 1/1     Running                 2          13d
+kube-system   etcd-docker-desktop                      1/1     Running                 2          13d
+kube-system   kube-apiserver-docker-desktop            1/1     Running                 2          13d
+kube-system   kube-controller-manager-docker-desktop   1/1     Running                 2          13d
+kube-system   kube-flannel-ds-5xpxr                    0/1     Init:ImagePullBackOff   0          106s
+kube-system   kube-proxy-plsfk                         1/1     Running                 2          13d
+kube-system   kube-scheduler-docker-desktop            1/1     Running                 2          13d
+kube-system   storage-provisioner                      1/1     Running                 5          13d
+kube-system   vpnkit-controller                        1/1     Running                 356        13d
+
+
+
+_____
+
+kubectl.exe get nodes
+- monstra todos os servidores nó que temos no nosso cluster.
+
+_____
+
+Para implementar/criar um recurso no seu cluster kubernetes executa:
+kubectl.exe apply -f .\pods2.yaml
+
+para apagar um pod
+kubectl.exe delete pod myapp-pod 
+
+get / set / describe são os verbos que são usados no kubectl.
+____________________________
+
+kubectl.exe apply -f .\deployment.yaml
+como o deployment cria pods  se executarmos:
+kubectl.exe get pods
+a gente ver os pods, no caso 3 porque ele criou 3 replicas de pod baseado em todas as especificações determinadas no arquivo deployment.yaml
+
+Agora a magia:
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-66b6c48dd5-6vfvp   1/1     Running   0          88s
+nginx-deployment-66b6c48dd5-bdk69   1/1     Running   0          88s
+nginx-deployment-66b6c48dd5-rjwnl   1/1     Running   0          88s
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe delete pod nginx-deployment-66b6c48dd5-bdk69
+pod "nginx-deployment-66b6c48dd5-bdk69" deleted
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-66b6c48dd5-6vfvp   1/1     Running   0          115s
+nginx-deployment-66b6c48dd5-qlgs5   1/1     Running   0          6s
+nginx-deployment-66b6c48dd5-rjwnl   1/1     Running   0          115s
+
+observe que ele levantou outro pod em seguida quando deletamos um pod, essa é a principal vantagem de usar o controlador de deployment para manter o estado desejado de uma aplicação.
+_________________________________
+
+Comandos especiais:
+kubectl.exe get pods
+kubectl.exe get pods --show-labels
+kubectl.exe get deployments = quantos deployments tem criado no seu cluster k8s e mostra quantos pods entra rodando nele
+kubectl.exe describe deployment nginx-deployment  = para saber mais detalhes de um recurso DESCRIBE
+    - quando um pod esta dando algum problema, o primeiro comando vocêvai executar é esse describe e vai visualizar a seção "Events" que é lá onde ele vai dizer qual é o problema
+    PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe get pods
+NAME                                READY   STATUS    RESTARTS   AGE
+nginx-deployment-66b6c48dd5-6vfvp   1/1     Running   0          7m34s
+nginx-deployment-66b6c48dd5-qlgs5   1/1     Running   0          5m45s
+nginx-deployment-66b6c48dd5-rjwnl   1/1     Running   0          7m34s
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe describe pod nginx-deployment-66b6c48dd5-6vfvp
+Name:         nginx-deployment-66b6c48dd5-6vfvp
+Namespace:    default
+Priority:     0
+Node:         docker-desktop/192.168.65.4
+Start Time:   Fri, 15 Oct 2021 01:19:58 -0300
+Labels:       app=nginx
+              pod-template-hash=66b6c48dd5
+Annotations:  <none>
+Status:       Running
+IP:           10.1.0.19
+IPs:
+  IP:           10.1.0.19
+Controlled By:  ReplicaSet/nginx-deployment-66b6c48dd5
+Containers:
+  nginx:
+    Container ID:   docker://de4db52afa90d821e0eac2c5349e3210c603a9925cca1d1ebd84083b58f0817c
+    Image:          nginx:1.14.2
+    Image ID:       docker-pullable://nginx@sha256:f7988fb6c02e0ce69257d9bd9cf37ae20a60f1df7563c3a2a6abe24160306b8d
+    Port:           80/TCP
+    Host Port:      0/TCP
+    State:          Running
+      Started:      Fri, 15 Oct 2021 01:20:26 -0300
+    Ready:          True
+    Restart Count:  0
+    Environment:    <none>
+    Mounts:
+      /var/run/secrets/kubernetes.io/serviceaccount from kube-api-access-x7znn (ro)
+Conditions:
+  Type              Status
+  Initialized       True
+  Ready             True
+  ContainersReady   True
+  PodScheduled      True
+Volumes:
+  kube-api-access-x7znn:
+    Type:                    Projected (a volume that contains injected data from multiple sources)
+    TokenExpirationSeconds:  3607
+    ConfigMapName:           kube-root-ca.crt
+    ConfigMapOptional:       <nil>
+    DownwardAPI:             true
+QoS Class:                   BestEffort
+Node-Selectors:              <none>
+Tolerations:                 node.kubernetes.io/not-ready:NoExecute op=Exists for 300s
+                             node.kubernetes.io/unreachable:NoExecute op=Exists for 300s
+Events:
+  Type    Reason     Age    From               Message
+  ----    ------     ----   ----               -------
+  Normal  Scheduled  7m41s  default-scheduler  Successfully assigned default/nginx-deployment-66b6c48dd5-6vfvp to docker-desktop
+  Normal  Pulling    7m40s  kubelet            Pulling image "nginx:1.14.2"
+  Normal  Pulled     7m15s  kubelet            Successfully pulled image "nginx:1.14.2" in 24.9811469s
+  Normal  Created    7m14s  kubelet            Created container nginx
+  Normal  Started    7m14s  kubelet            Started container nginx
+
+
+
+
+
+kubectl.exe logs nomepod
+    - se tivesse algum erro no container/aplicação que fosse impresso no stdout poderiamos ver por aqui.
+
+kubectl.exe exec -it nomepod /bin/bash
+    - para entrar no shell dentro do pod para ver o que esta acontecendo
+
+
+ kubectl.exe apply -f .\service.yaml
+ kubectl.exe get service
+ NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP   13d
+my-service   ClusterIP   10.109.90.28   <none>        80/TCP    28s
+
+
+
+ kubectl.exe get ep my-service
+NAME         ENDPOINTS                                AGE
+my-service   10.1.0.19:80,10.1.0.21:80,10.1.0.22:80   63s
+dessa forma eu consigo saber se ele pegou os pods certos para rotear as requisições que chegarem nele
+
+conferir:
+kubectl.exe get pods -l app=nginx
+__________________
+
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe apply -f .\service-loadbalancer.yaml
+service/my-service-loadbalancer created
+PS C:\Users\vlademir.junior\Documents\My Web Sites\K8s> kubectl.exe get service
+NAME                      TYPE           CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+kubernetes                ClusterIP      10.96.0.1      <none>        443/TCP        13d
+my-service                NodePort       10.109.90.28   <none>        80:30582/TCP   17m
+my-service-loadbalancer   LoadBalancer   10.104.27.65   localhost     80:32488/TCP   6s
+
+obs.: external-ip está localhost apenas, significa que se acessar ele sem a porta ele vaai funcionar!
+__________________
+
+
+Ver em tempo real o que acontece com seus pods.
+kutectl.exe get pods -w -> watch, usado quando vai fazer atualizar a versão da imagem e quer saber se realmente atualizou.
+
+____________________________________________________________
+
+kubectl.exe create namespace mem-example
+- isola recursos para fazer testes
+kubectl.exe apply -f mem-example.yaml --namespace=mem-example
+kubectl.exe get pod memory-demo --namespace=mem-example
+kubectl.exe get pod memory-demo --output=yaml --namespace=mem-example
+
+_______________
+
+Volume persistente:
+kubectl.exe get pv
+kubectl.exe get pv task-pv-volume
+
+reinvindicação:
+kubectl.exe get pvc task-pv-claim
+NAME            STATUS   VOLUME           CAPACITY   ACCESS MODES   STORAGECLASS   AGE
+task-pv-claim   Bound    task-pv-volume   10G        RWO            manual         3m6s
+
+kubectl.exe apply -f .\task-pv-pod.yaml
+
+____________________________________________________________
+
+Se você tiver em prod e só tiver 1 instancia então precisa habilitar o master para executar como slave também.
+kubectl.exe taint nodes --all node-role.kubernetes.io/master-
+
+____________________________________________________________
+
+kubectl.exe edit deployment nginx-deployment
+-> vai abrir um objeto de deployment com todas opções que vocÊ definiu + opções que o kubernetes adiciona que são padrões do objeto mas você pode editar;
+edite a versão da imagem salve e saie
+kubectl.exe rollout status deployment nginx-deployment
+-> para ver se foi atualizado com sucesso.
+kubectl get rs
+-> ver as rashes baseadas em seus deployment
+
+outra forma de atualizar as imagens que é usada com jenkins:
+kubectl set image deployment nginx-deployment containername=nginx:1.7.9 --record
+kubectl get pods --watch
+-> vai ver ele terminando os containers e subindo os novos da nova versão.
+
+kubectl.exe edit deployment nginx-deployment
+Existe uma opção que é adicionada por padrão: "STRATEGY"
+strategy define basicamente como vai ser feito o processo de atualização dos seus pods.
+por padrão é a rollingUpdate = atualização continua ela ajuda a reduzir a indisponibilidade na hora da atualização com a maxSurge e maxUnavailable
+
+
+kubectl.exe rollout history deployment nginx-deployment
+Esse comando mostra as revisões de atualização com número e comando utilizado.
+
+kubectl.exe rollout history deployment nginx-deployment --revision=10
+para ver detalhes da revisão
+
+kubectl.exe rollout undo deployment nginx-deployment
+esse comando faz voltar uma revisão atrás, como se fosse um rollback de migration
+kubectl.exe rollout undo deployment nginx-deployment --to-revision=8
+esse comando especifica qual versão que deseja voltar
+
+
+kubectl.exe rollout pause deployment nginx-deployment
+pausando o deploy, dessa forma nenhum deploy é efetuado de fato até que seja resumido, muito usado para fazer atualização manual
+ex.: após pausar um deployment você atualize a versão da imagem e depois dar um resume 
+kubectl.exe set image deployment nginx-deployment nginx=nginx:1.7.9 --record=true
+kubectl.exe rollout resume deployment nginx-deployment

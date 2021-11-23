@@ -1,0 +1,161 @@
+apiVersion: dependendo dos recursos voce precisa de uma versão especifica
+kind: tipo de objeto que você quer implementar, no caso, queremos implementar um Pod que é um container ou vários.
+metadata:
+    name: nome do meu Pod
+    labels: é uma forma de taguear algum recurso com objetivo de depois gerenciar esse recurso como um grupo ex.: "quero gerenciar todos os pods que possuem a label app: myapp"
+        app: myapp 
+
+spec: é a foram de determinar como o container vai ser executado
+    containers:
+    - name: myapp nome do container
+        image: nginx
+
+
+dica:
+Cada pod deve ter um container a não ser que precisa rodar varios containers dentro de um mesmo pod.
+____________________________
+
+
+Controllador de deployment
+
+ele controla a execução dos seus pods
+Ex.: "Eu quero 3 pods do meu aplicativo node.js myapp rodando" então o deployment executa a implementação dos pods nos meu nós, e ele garante que isso SEMPRE OCORRA, se o pod morre ele vai tentar RESTARTAR até funcionar por ex.
+o deployment vai monitorar continuamente as instancia de app que esta rodando.
+"Auto correção" se uma coisa falhar ou ser excluida ele tenta se corrigir e faz isso através do deployment
+
+na pratica:
+replicas: 3 = quantidades de pods que eu quero rodando dessa implementação que to criando.
+seletores: como trabalhamos com labels, a gente pode usar os seletores para gerenciar todos os pods que possuem as labels especificados no seletores
+template: especifica qual é o modelo dos pods que vão rodar, ex.: devem ter a label app: nginx
+spec: especificação dos containers
+
+___________________________________________
+
+Pods foram feitos para morrer, toda vez que morre o ip muda pois é dinamico.
+para resolver esse problema a gente usa deployments mas a maneira correta de expor os serviços para eles se conectarem precisamos do recurso services.
+
+services: abstrai a comunicação de um serviço com o outro, é uma especie de proxy que cada componente/pod vai ter um proxy, é uma porta de entrada que recebe uma solicitação e encaminha para quem está esperando aquela solicitação.
+para saber para onde deve rotear você precisa usar as LABELS.
+
+no frontend você ao inves de botar o ip do serviço você coloca o NOME do SERVIÇO BACKEND
+
+Formas de expor uma aplicação "Serviço do tipo ClusterIP" é um tipo que apenas expoe sua aplicação internamente. ex.:
+- eu tenho minha aplicação frontend e quero que ele se comunica com meu backend então eu crio um serviço do tipo clusterip esse é um tipo padrão
+no seu front ao inves de passar o ip do backend voce apenas colocar o nome do seu servidor que o kubernetes tem dns local e vai saber.
+
+expor para publico a aplicação tem 2 formas, laodbalancer ou NodePort
+
+kubectl.exe get service
+NAME         TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)        AGE
+kubernetes   ClusterIP   10.96.0.1      <none>        443/TCP        13d
+my-service   NodePort    10.109.90.28   <none>        80:30582/TCP   11m
+
+http://localhost:30582/
+
+Obs.: Não é recomendado NodePort em produção, apenas em desenvolvimento!!!
+__________________
+
+LoadBalancer = tipo de serviço utilizado para produção!
+não funciona bem localhost
+precisa especificar o ip publico para ele funcionar
+
+ESCALAR
+___________________________________________________________
+você pode escalar sua aplicação manualmente no deployment alterando as replicas
+____________________________________________________________
+vocÊ pode usar a CLI: kubectl.exe scale deployment/nginx-deployment --replicas=4
+___________________________________________________________
+você pode usar de forma automatica através de processamento de CPU ou uso de memória!
+
+
+___________________________________________________________
+Rolling update (Atualização continua - downtime zero)
+só mata um pod quando o outra versão estiver disponivel.
+Ex.:
+
+quero atualizar a imagem do meu aplicativo? colocar a nova imagem dele!
+vai no deployment e muda a versão da iamgem
+____________________________________________________________
+
+Alocação de memória
+- Cada nó precisa no minimo 300MB de memória
+
+resources: request -> especifica a solicitação de memória
+resources: limits -> especifica um limite de memória
+
+_________________________________
+
+Alocação de CPU
+Sempre defina limits e request os recursos de cpu do seu cluster.
+
+___________________________________________________________
+
+QoS
+- Qualidade de serviço, usado para tomar decisões para agendamento e despejo de pod. 
+
+como garantir que um pod não seja excluído: classname = garanted -> o limite e request de memoria e cpu devem ser iguais para todos os containers no pod.
+ex.: limit memory 200M e request memory 200M
+é o ultimo pod a morrer, prioridade máxima
+
+como habilitar que um pod seja excluido: classname = burstable -> o limite e request de memoria e cpu são diferentes para todos os containers do pod.
+ex.: limit memory 200M e request memory 100M
+é o segundo pod a morrer, prioridade média
+
+como habilitar que um pod usa até o máximo de memoria LIVRE no nó: classname = besteffort ->  sem resources 
+é o primeiro pod a morrer quando acaba a memória, prioridade minima!
+
+____________________________________________________________
+
+
+Armazenamento:
+Persistente e não persistente.
+por padrão é não persistente.
+
+Para configurar um pod com volume persistente:
+ideal para lojas com redis.
+
+o volume persistente é um "plugin" de volume, ele é como se fosse um recurso qualquer.
+você precisa de um persistent volume claim.
+
+em um nó de um cluster k8s:
+
+cria um pasta e aplica no hostPath do manifesto você passa o path da pasta criada
+
+agora precisa criar uma reinvindicação de volume persistente para os pods solicitar volumes de armazenamento fisico para um nó "slave".
+após aplicar o pv-claim.yaml e executar "kubectl.exe get pv" você ver o status do CLAIM que a reinvindicação foi aplicada automaticamente.
+
+você pode agora criar um pod que vai usar essa reinvindicação como um volume persistente.
+
+precisa configurar o GID
+
+em produção usar um recurso de rede "NFS, Amazon Block Store..."
+
+
+Rode: kubectl.exe logs command-demo
+para ver o print das variaveis
+
+
+____________________________________________________________
+
+defina  limite de histórico de revisões com spec.revisionHistoryLimit
+minReadSeconds também é interessante mas não é obrigatório.
+____________________________________________________________
+
+HPA - Horizontal Pods Autoscaler
+
+Dimensiona automaticamente baseado na utilização de CPU a quantidade dos seus pods.
+
+1º precisa instalar a api de metricas do kubernetes: https://github.com/kubernetes-sigs/metrics-server
+
+agora voce esta apto a usar o recurso de hpa usando as politicas como parametro:
+kubectl.exe autoscale deployment loop-deployment --cpu-percent=50 --min=1 --max=10
+vai manter entre 1 e 10 replicas do nosso pod nosso deployment para manter a estrutura media de 50% em cada pod
+kubectl.exe get hpa
+voce ver se realmente foi criado o recurso
+voce precisa criar o service para expor o serviço na 80
+depois usar o container intermediario do busybox para testar.
+kubectl.exe run -it load-generator --image=busybox /bin/sh    
+while true; do wget -q -O- http://svc-hpa-apache.default.svc.cluster.local;
+
+default é o namespace, svc o tipo de recurso cluster e local.
+para ver escalonando abre outro terminal e digite kubectl.exe get hpa para ver 

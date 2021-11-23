@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: task-pv-volume-persistente
+  anotations:
+  pv.beta.kubernetes.io/gid: "123"
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10G
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  hostPath:
+    path: "/c/Users/vlademir.junior/Documents/My Web Sites/K8s"

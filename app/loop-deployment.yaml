@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: loop-deployment
+  labels:
+    app: loop
+spec:
+  replicas: 3
+  minReadySeconds: 60
+  revisionHistoryLimit: 10
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 25%
+    type: RollingUpdate
+  selector:
+    matchLabels:
+      app: loop
+  template:
+    metadata:
+      labels:
+        app: loop
+    spec:
+      containers:
+      - name: loop
+        image: vlademirdocker/phphpa
+        resources:
+          requests:
+            cpu: "200m"
+        ports:
+          - containerPort: 80

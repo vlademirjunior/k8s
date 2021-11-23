@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: memory-demo
+spec:
+  containers:
+  - name: memory-demo-ctr
+    image: vish/stress
+    resources:
+      limits:
+        memory: "200Mi"
+        cpu: "500m"
+      requests:
+        memory: "100Mi" # 100 megas que meu container quer alocar para minha aplicação e se precisar em caso de estresse ele vai até no máximo 200 megas de memória
+    args:
+      - -mem-total
+      - 150Mi # tente alocar na inicilização 150 megabytes
+      - -mem-alloc-size
+      - 10Mi
+      - -mem-alloc-sleep
+      - 1s
